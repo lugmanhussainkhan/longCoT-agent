@@ -34,6 +34,7 @@ export async function agent(
       providerOptions,
       messages,
       stopWhen: stepCountIs(maxIterations),
+      maxRetries: 4,
       tools: {
         spawn_worker: tool({
           description:
@@ -49,6 +50,7 @@ export async function agent(
                 { role: "system", content: workerSystem },
                 { role: "user", content: input },
               ],
+              maxRetries: 4,
             });
             workerLogs.push(workerRes);
             return workerRes.text;
