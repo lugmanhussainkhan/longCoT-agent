@@ -1,28 +1,50 @@
-import { type GoogleLanguageModelOptions } from "@ai-sdk/google";
-import { vertex } from "@ai-sdk/google-vertex";
-import { type SharedV3ProviderOptions } from "@ai-sdk/provider";
+import fs from "fs";
 import pLimit from "p-limit";
+import data from "../data/math/easy.json";
+import { agent } from "./agent";
+import { models } from "./model";
 
-const model = vertex("gemini-3-flash-preview");
-const providerOptions: SharedV3ProviderOptions = {
-  google: {
-    thinkingConfig: {
-      thinkingLevel: "high",
-      includeThoughts: true,
-    },
-    serviceTier: "flex",
-  } satisfies GoogleLanguageModelOptions,
-};
-const concurrency = 4;
+const { model, providerOptions } = models["bedrock-kimi-k2.5"];
+const concurrency = 10;
 const limit = pLimit(concurrency);
+const maxIterations = 24;
 
 async function main() {
+  let basePath = `out/${model.modelId}-math-easy-${Date.now()}`;
+  if (!fs.existsSync(basePath)) fs.mkdirSync(basePath);
+
   console.log("=".repeat(80));
   console.log("LongCoT Agent Run");
   console.log("-".repeat(80));
   console.log(`- Model: ${model.modelId}`);
   console.log(`- Provider: ${model.provider}`);
+  console.log(`- Max Iterations: ${maxIterations}`);
   console.log(`- Concurrency: ${concurrency}`);
+  console.log(`- Items: ${data.questions.length}`);
+  console.log("=".repeat(80));
+
+  const promises = data.questions.map((item) =>
+    limit(async () => {
+      const filePath = `${basePath}/${item.question_id}-${item.problem.template}.json`;
+      if (fs.existsSync(filePath)) {
+        console.log(`Skipping ${item.question_id} as it already exists`);
+        return;
+      }
+
+      const result = await agent(
+        model,
+        providerOptions,
+        maxIterations,
+        item.prompt,
+        item.question_id,
+      );
+      fs.writeFileSync(filePath, JSON.stringify(result, null, 2));
+    }),
+  );
+  await Promise.all(promises);
+
+  console.log("=".repeat(80));
+  console.log("LongCoT Agent Run Complete");
   console.log("=".repeat(80));
 }
 
