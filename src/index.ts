@@ -10,7 +10,7 @@ const limit = pLimit(concurrency);
 const maxIterations = 24;
 
 async function main() {
-  let basePath = `out/${model.modelId}-math-easy-${Date.now()}`;
+  let basePath = `out/agentic-${model.modelId}-math-easy-${Date.now()}`;
   if (!fs.existsSync(basePath)) fs.mkdirSync(basePath);
 
   console.log("=".repeat(80));
